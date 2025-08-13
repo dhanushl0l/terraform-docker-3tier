@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Create Example</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 640px;
+            margin: 2rem auto;
+        }
+
+        label {
+            display: block;
+            margin-top: .75rem;
+        }
+
+        input {
+            width: 100%;
+            padding: .5rem;
+            margin-top: .25rem;
+        }
+
+        button {
+            margin-top: 1rem;
+            padding: .6rem 1rem;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: .75rem;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: .5rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>POST /create → backend</h1>
+
+    <form id="create-form">
+        <label>
+            Name
+            <input id="name" name="name" placeholder="John Doe" required />
+        </label>
+        <label>
+            Role
+            <input id="role" name="role" placeholder="Developer" required />
+        </label>
+        <label>
+            Email
+            <input id="email" name="email" placeholder="john@example.com" type="email" required />
+        </label>
+        <button type="submit">Send</button>
+    </form>
+
+    <button id="get-data-btn">Get All Data</button>
+
+    <h3>Result</h3>
+    <pre id="result">—</pre>
+
+    <h3>Database Records</h3>
+    <div id="table-container">No data loaded.</div>
+
+    <script>
+        const resultEl = document.getElementById('result');
+        const form = document.getElementById('create-form');
+        const tableContainer = document.getElementById('table-container');
+        const getDataBtn = document.getElementById('get-data-btn');
+
+        const createUrl = `/create`;
+        const getUrl = `/get`;
+
+        // Handle POST /create
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('name').value,
+                role: document.getElementById('role').value,
+                email: document.getElementById('email').value
+            };
+
+            resultEl.textContent = 'Sending...';
+
+            try {
+                const res = await fetch(createUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const text = await res.text();
+                resultEl.textContent = `Status: ${res.status}\n\n${text}`;
+            } catch (err) {
+                resultEl.textContent = `Request failed: ${err.message || err}`;
+            }
+        });
+
+        // Handle GET /get
+        getDataBtn.addEventListener('click', async () => {
+            tableContainer.textContent = 'Loading...';
+            try {
+                const res = await fetch(getUrl);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    tableContainer.textContent = 'No records found.';
+                    return;
+                }
+
+                // Build table
+                const table = document.createElement('table');
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                ['ID', 'Name', 'Role', 'Email'].forEach(h => {
+                    const th = document.createElement('th');
+                    th.textContent = h;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    [row.id, row.name, row.role, row.email].forEach(val => {
+                        const td = document.createElement('td');
+                        td.textContent = val;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+
+                tableContainer.innerHTML = '';
+                tableContainer.appendChild(table);
+
+            } catch (err) {
+                tableContainer.textContent = `Failed to load data: ${err.message || err}`;
+            }
+        });
+    </script>
+</body>
+
+</html>
