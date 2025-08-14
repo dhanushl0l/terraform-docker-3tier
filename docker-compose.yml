@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_internal
+
+  backend:
+    image: rust-app:latest
+    container_name: rust-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - postgres
+    networks:
+      - app_internal
+
+  frontend:
+    image: nginx:latest
+    container_name: frontend
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./templates/index.html:/usr/share/nginx/html/index.html
+      - ./templates/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+    networks:
+      - app_internal
+
+networks:
+  app_internal:
+    driver: bridge 
+
+volumes:
+  postgres_data:
+    driver: local

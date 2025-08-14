@@ -1,2 +1,6 @@
 postgres_data/
 backend/target
+.terraform/
+terraform.tfstate.backup
+terraform.log
+.env
