@@ -24,7 +24,7 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                // Clean up old network to avoid "already exists" error
+                // to avoide unnecessary duplicate
                 sh 'docker network rm app_internal || true'
                 sh 'sudo terraform init'
                 sh 'sudo terraform apply -auto-approve'
@@ -33,7 +33,6 @@ pipeline {
 
         stage('Docker Compose Up') {
             steps {
-                // Avoid Groovy interpolation warning by using env vars directly
                 writeFile file: '.env', text: """
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
@@ -48,10 +47,29 @@ NGINX_PORT=$NGINX_PORT
 
         stage('Health Checks') {
             steps {
-                // You can replace this with actual curl checks later
-                echo '✅ All services are healthy.'
+                script {
+                    // Helper function for retries
+                    def checkInContainer = { container, cmd ->
+                        retry(5) {
+                            sleep(time: 10, unit: 'SECONDS')
+                            sh "sudo docker exec ${container} sh -c '${cmd}'"
+                        }
+                    }
+
+                    // check if Postgres is accepting connections
+                    checkInContainer("postgres-db", "pg_isready -U $DB_USER -d $DB_NAME")
+
+                    // check if backend responds on its port (inside container network)
+                    checkInContainer("rust-backend", "curl -fs http://localhost:8081/get")
+
+                    // check if frontend responds on its port
+                    checkInContainer("frontend", "curl -fs http://localhost:80/")
+
+                    echo '✅ All containers passed health checks.'
+                }
             }
         }
+
     }
 
     post {
