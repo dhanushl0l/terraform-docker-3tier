@@ -1,7 +1,7 @@
 FROM rust:latest AS builder
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+RUN apt update && apt install -y \
     build-essential \
     pkg-config \
     libssl-dev \
@@ -15,7 +15,8 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+RUN apt update && apt install -y \
+    curl \
     libssl3 \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*

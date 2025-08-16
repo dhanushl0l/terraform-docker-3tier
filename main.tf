@@ -20,9 +20,12 @@ resource "docker_network" "app_internal" {
   }
 }
 
-
-resource "docker_image" "nginx" {
-  name         = "nginx:latest"
+resource "docker_image" "nginx_with_curl" {
+  name = "nginx-with-curl:latest"
+  build {
+    context    = path.module
+    dockerfile = "Dockerfile.nginx"
+  }
   keep_locally = false
 }
 
